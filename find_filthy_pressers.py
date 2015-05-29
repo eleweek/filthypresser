@@ -2,6 +2,8 @@ import logging
 import argparse
 import time
 import praw
+from app import Submission, db
+from datetime import datetime
 
 
 # Downloads all the self posts from given subreddit
@@ -27,15 +29,19 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
             continue
 
         for s in search_results:
-            print s.id
-            print s.score
-            print s.created_utc
-            print s.url.encode('utf-8') if s.url else None
-            print s.title.encode('utf-8') if s.title else None
-            print s.author_flair_text.encode('utf-8') if s.author_flair_text else None
-            print s.selftext.encode('utf-8')
-            # To make parsing using awk simpler
-            print "====END_OF_RECORD===="
+            if Submission.query.filter_by(submission_id=s.id).first() is not None:
+                continue
+
+            dbs = Submission(submission_id=s.id,
+                             score=s.score,
+                             permalink=s.permalink,
+                             created_utc=datetime.utcfromtimestamp(s.created_utc),
+                             url=s.url,
+                             title=s.title,
+                             author_flair_text=s.author_flair_text,
+                             selftext=s.selftext)
+
+            db.session.add(dbs)
 
             # submission.replace_more_comments(limit=None)
             # for c in submission.comments:
@@ -45,6 +51,7 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
 
         cts2 = cts1
         cts1 = cts2 - current_ts_interval
+        db.session.commit()
 
         if cts1 < 0:
             break
