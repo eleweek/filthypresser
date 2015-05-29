@@ -54,7 +54,7 @@ def filthy_pressers(page):
 @app.route("/non_pressers/<int:page>")
 @app.route("/non_pressers", defaults={'page': 1})
 def non_pressers(page):
-    submissions = Submission.query.filter_by(author_flair_text='non presser').paginate(per_page=20, page=page)
+    submissions = Submission.query.filter_by(author_flair_text='non presser').order_by(Submission.id.desc()).paginate(per_page=20, page=page)
     return render_template("index.html", submissions_count=Submission.query.count(), submissions=submissions)
 
 
