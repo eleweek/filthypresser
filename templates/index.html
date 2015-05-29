@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% import 'macros.html' as macros %}
+
 {% block content %}
   <div class="container">
     <p>
@@ -9,5 +11,42 @@
     <h2> Downloading the whole subreddit right now </h2>
     <h3> Submissions in the db: {{submissions_count}} </h3>
 
+    {{ macros.render_pagination(submissions) }}
+    {% for s in submissions.items %}
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title"><a href={{s.permalink}}>{{s.title}}</a></h3>
+        </div>
+        <div class="panel-body">
+          {% set hide_submission_body = s.selftext and s.selftext|length > 500 %}
+          {% if hide_submission_body %}
+            <a href="#" class="btn btn-primary show-submission-body" data-submission-id="{{s.submission_id}}">Show submission body</a>
+          {% endif %}
+          <div class="submission-body" id="submission-body-{{s.submission_id}}" {% if hide_submission_body %} style="display:none;" {% endif %}>
+            {% if s.selftext %}
+              {{s.selftext}}
+            {% else %}
+              {{s.url}}
+            {% endif %}
+          </div>
+        </div>
+      </div>  
+    {% endfor %}
+    {{ macros.render_pagination(submissions) }}
+
   </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  $(document).ready(function() {
+    $('.show-submission-body').click(function(){
+      submission_id = $(this).data('submission-id');
+      console.log("CLicked on " + submission_id);
+      $('#submission-body-' + submission_id).toggle();
+      $(this).hide();
+    });
+  });
+</script>
 {% endblock %}

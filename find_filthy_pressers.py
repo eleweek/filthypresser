@@ -29,19 +29,23 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
             continue
 
         for s in search_results:
-            if Submission.query.filter_by(submission_id=s.id).first() is not None:
-                continue
+            # FIXME check url length etc
+            try:
+                if Submission.query.filter_by(submission_id=s.id).first() is not None:
+                    continue
+                dbs = Submission(submission_id=s.id,
+                                 score=s.score,
+                                 permalink=s.permalink,
+                                 created_utc=datetime.utcfromtimestamp(s.created_utc),
+                                 url=s.url,
+                                 title=s.title,
+                                 author_flair_text=s.author_flair_text,
+                                 selftext=s.selftext)
 
-            dbs = Submission(submission_id=s.id,
-                             score=s.score,
-                             permalink=s.permalink,
-                             created_utc=datetime.utcfromtimestamp(s.created_utc),
-                             url=s.url,
-                             title=s.title,
-                             author_flair_text=s.author_flair_text,
-                             selftext=s.selftext)
-
-            db.session.add(dbs)
+                db.session.add(dbs)
+            except Exception as e:
+                logging.exception(e)
+                db.session.rollback()
 
             # submission.replace_more_comments(limit=None)
             # for c in submission.comments:
@@ -51,7 +55,11 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
 
         cts2 = cts1
         cts1 = cts2 - current_ts_interval
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            logging.exception(e)
+            db.session.rollback()
 
         if cts1 < 0:
             break
