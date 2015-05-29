@@ -15,7 +15,7 @@
     {% for s in submissions.items %}
       <div class="panel panel-default">
         <div class="panel-heading">
-          <h3 class="panel-title"><a href={{s.permalink}}>{{s.title}}</a></h3>
+          <h3 class="panel-title"><a href={{s.permalink}}>{{s.title}}</a> <span class="badge">{{s.author_flair_text}}</span> </h3>
         </div>
         <div class="panel-body">
           {% set hide_submission_body = s.selftext and s.selftext|length > 500 %}
