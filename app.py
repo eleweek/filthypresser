@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, url_for, redirect
 from flask_bootstrap import Bootstrap
 from flask.ext.sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
 import os
 
 app = Flask(__name__)
@@ -35,9 +36,21 @@ def all_submissions(page):
     return render_template("index.html", submissions_count=Submission.query.count(), submissions=submissions)
 
 
+@app.route("/filthy_pressers/<int:page>")
+@app.route("/filthy_pressers", defaults={'page': 1})
+def filthy_pressers(page):
+    submissions = Submission.query.filter(or_(Submission.author_flair_text != 'non presser',
+                                              Submission.author_flair_text != "can't press",
+                                              Submission.author_flair_text != None))\
+                                  .filter(Submission.selftext.op("~")('(filth(y)?[ ]*presser)|(follow(er)?[ ]*(of)?[ ]*(the)?[ ]*shade)|(non-?[ ]*presser[*]forever)|(gr[ea]y[ ]*forever)')) \
+                                  .order_by(Submission.id.desc()).paginate(page=page, per_page=20)  # NOQA
+
+    return render_template("index.html", submissions_count=Submission.query.count(), submissions=submissions)
+
+
 @app.route("/")
 def index():
-    return redirect(url_for("all_submissions"))
+    return redirect(url_for("filthy_pressers"))
 
 if __name__ == "__main__":
     app.run(debug=True)
