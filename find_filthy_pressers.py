@@ -26,12 +26,20 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
             logging.debug("Reducing ts interval to {}".format(current_ts_interval))
             continue
 
-        for submission in search_results:
-            submission.replace_more_comments(limit=None)
-            for c in submission.comments:
-                # TODO: use regex here
-                if 'filthy presser' in c.body or "Filthy presser" in c.body:
-                    print c.id, (c.permalink if 'permalink' in dir(c) else None), c.body, c.author_flair_text
+        for s in search_results:
+            print s.id
+            print s.url.encode('utf-8') if s.url else None
+            print s.title.encode('utf-8') if s.title else None
+            print s.author_flair_text.encode('utf-8') if s.author_flair_text else None
+            print s.selftext.encode('utf-8')
+            # To make parsing using awk simpler
+            print "====END_OF_RECORD===="
+
+            # submission.replace_more_comments(limit=None)
+            # for c in submission.comments:
+            # TODO: use regex here
+            #    if 'filthy presser' in c.body or "Filthy presser" in c.body:
+            #        print c.id, (c.permalink if 'permalink' in dir(c) else None), c.body, c.author_flair_text
 
         cts2 = cts1
         cts1 = cts2 - current_ts_interval
@@ -45,7 +53,7 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
 
 
 def main():
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)
 
     parser = argparse.ArgumentParser(description='filthy presser app/bot')
     parser.add_argument("--timestamp_interval", dest="timestamp_interval", type=int, required=True)
