@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, url_for, redirect
 from flask_bootstrap import Bootstrap
 from flask.ext.sqlalchemy import SQLAlchemy
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 import os
 
 app = Flask(__name__)
@@ -40,13 +40,21 @@ def all_submissions(page):
 @app.route("/filthy_pressers", defaults={'page': 1})
 def filthy_pressers(page):
     regex = '(filth(y)?[ ]*presser)|(follow(er)?[ ]*(of)?[ ]*(the)?[ ]*shade)|(non-?[ ]*presser[*]forever)|(gr[ea]y[ ]*forever)'
-    submissions = Submission.query.filter(or_(Submission.author_flair_text != 'non presser',
-                                              Submission.author_flair_text != "can't press",
-                                              Submission.author_flair_text != None))\
+    submissions = Submission.query.filter(and_(Submission.author_flair_text != 'non presser',
+                                               Submission.author_flair_text != "can't press",
+                                               Submission.author_flair_text != None))\
                                   .filter(or_(Submission.selftext.op("~")(regex),
                                               Submission.title.op("~")(regex)))\
-                                  .order_by(Submission.id.desc()).paginate(page=page, per_page=20)  # NOQA
+                                  .order_by(Submission.id.desc())\
+                                  .paginate(page=page, per_page=20)  # NOQA
 
+    return render_template("index.html", submissions_count=Submission.query.count(), submissions=submissions)
+
+
+@app.route("/non_pressers/<int:page>")
+@app.route("/non_pressers", defaults={'page': 1})
+def non_pressers(page):
+    submissions = Submission.query.filter_by(author_flair_text='non presser').paginate(per_page=20, page=page)
     return render_template("index.html", submissions_count=Submission.query.count(), submissions=submissions)
 
 
