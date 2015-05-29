@@ -28,6 +28,8 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
 
         for s in search_results:
             print s.id
+            print s.score
+            print s.created_utc
             print s.url.encode('utf-8') if s.url else None
             print s.title.encode('utf-8') if s.title else None
             print s.author_flair_text.encode('utf-8') if s.author_flair_text else None
