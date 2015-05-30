@@ -2,6 +2,8 @@
 
 {% block title %}Filthy presser!{% endblock %}
 
+{% import "bootstrap/wtf.html" as wtf %}
+
 {% block navbar %}
   <!-- Static navbar -->
   <nav class="navbar navbar-default">
@@ -19,6 +21,14 @@
         <ul class="nav navbar-nav">
           <li><a href="{{url_for('filthy_pressers')}}">Shame false greys</a></li>
           <li><a href="{{url_for('non_pressers')}}">Convert non-pressers</a></li>
+        </ul>
+        <ul class="nav navbar-nav">
+         <form action="{{url_for('search')}}" method="POST" class="navbar-form" role="search">
+           {{ g.search_form.hidden_tag() }}
+           <input class="form-control" id="query" name="query" required type="text" value="" placeholder="Regex Search">
+           {{ wtf.form_field(g.search_form.search_button) }}
+         </form>
+        </ul>        
       </div><!--/.nav-collapse -->
     </div>
   </nav>
