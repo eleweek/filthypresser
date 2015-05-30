@@ -2,12 +2,23 @@ from flask import Flask, render_template, request, url_for, redirect
 from flask_bootstrap import Bootstrap
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, and_
+from flask.ext.script import Manager
+from flask.ext.migrate import Migrate, MigrateCommand
 import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 Bootstrap(app)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
+
+
+@manager.command
+def run():
+    app.run(debug=True)
 
 
 def url_for_other_page(page):
@@ -24,6 +35,7 @@ class Submission(db.Model):
     url = db.Column(db.String(1024))
     score = db.Column(db.Integer)
     title = db.Column(db.String(1024))
+    author_username = db.Column(db.String(1024))
     author_flair_text = db.Column(db.String(1024))
     selftext = db.Column(db.Text())
     created_utc = db.Column(db.DateTime())
@@ -63,4 +75,4 @@ def index():
     return redirect(url_for("filthy_pressers"))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    manager.run()
