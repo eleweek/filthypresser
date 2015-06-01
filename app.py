@@ -24,6 +24,14 @@ def run():
     app.run(debug=True)
 
 
+def get_or_create(model, **kwargs):
+    instance = model.query.filter_by(**kwargs).first()
+    if instance is None:
+        instance = model(**kwargs)
+        db.session.add(instance)
+    return instance
+
+
 def url_for_other_page(page):
     args = request.view_args.copy()
     args['page'] = page
@@ -31,17 +39,38 @@ def url_for_other_page(page):
 app.jinja_env.globals['url_for_other_page'] = url_for_other_page
 
 
-class Submission(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    submission_id = db.Column(db.String(32), unique=True)
+class Thing(db.Model):
+    type = db.Column(db.String(50))
+    reddit_id = db.Column(db.String(32), unique=True, primary_key=True)
     permalink = db.Column(db.String(1024))
-    url = db.Column(db.String(1024))
     score = db.Column(db.Integer)
-    title = db.Column(db.String(1024))
     author_username = db.Column(db.String(1024))
     author_flair_text = db.Column(db.String(1024))
-    selftext = db.Column(db.Text())
     created_utc = db.Column(db.DateTime())
+
+    __mapper_args__ = {
+        'polymorphic_on': type,
+        'polymorphic_identity': 'thing'
+    }
+
+
+class Submission(Thing):
+    url = db.Column(db.String(1024))
+    title = db.Column(db.String(1024))
+    selftext = db.Column(db.Text())
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'submission'
+    }
+
+
+class Comment(Thing):
+    body = db.Column(db.Text())
+    parent_reddit_id = db.Column(db.String(32))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'comment'
+    }
 
 
 class SearchForm(Form):
@@ -57,7 +86,7 @@ def create_search_form():
 @app.route("/all_submissions/<int:page>")
 @app.route("/all_submissions", defaults={'page': 1})
 def all_submissions(page):
-    submissions = Submission.query.order_by(Submission.id).paginate(page=page, per_page=20)
+    submissions = Submission.query.order_by(Submission.reddit_id).paginate(page=page, per_page=20)
     return render_template("submissions.html", submissions_count=Submission.query.count(), submissions=submissions)
 
 
@@ -70,11 +99,12 @@ def filthy_pressers(page):
                                                Submission.author_flair_text != None))\
                                   .filter(or_(Submission.selftext.op("~")(regex),
                                               Submission.title.op("~")(regex)))\
-                                  .order_by(Submission.id.desc())\
+                                  .order_by(Submission.reddit_id.asc())\
                                   .paginate(page=page, per_page=20)  # NOQA
 
     return render_template("submissions.html",
                            submissions_count=Submission.query.count(),
+                           comments_count=Comment.query.count(),
                            submissions=submissions,
                            heading="Find false greys")
 
@@ -82,7 +112,7 @@ def filthy_pressers(page):
 @app.route("/non_pressers/<int:page>")
 @app.route("/non_pressers", defaults={'page': 1})
 def non_pressers(page):
-    submissions = Submission.query.filter_by(author_flair_text='non presser').order_by(Submission.id.desc()).paginate(per_page=20, page=page)
+    submissions = Submission.query.filter_by(author_flair_text='non presser').order_by(Submission.reddit_id.asc()).paginate(per_page=20, page=page)
     return render_template("submissions.html",
                            submissions_count=Submission.query.count(),
                            submissions=submissions,
@@ -100,9 +130,12 @@ def search():
 @app.route('/search_results/<query>/<int:page>')
 @app.route('/search_results/<query>', defaults={"page": 1})
 def search_results(query, page):
-    submissions = Submission.query.filter(Submission.selftext.op("~")(query)).order_by(Submission.id.desc()).paginate(per_page=20, page=page)
+    submissions = Submission.query.filter(Submission.selftext.op("~")(query)).order_by(Submission.reddit_id.asc()).paginate(per_page=20, page=page)
 
-    return render_template("submissions.html", submissions_count=Submission.query.count(), submissions=submissions, heading="Search results for query [{}]".format(query))
+    return render_template("submissions.html",
+                           submissions_count=Submission.query.count(),
+                           submissions=submissions,
+                           heading="Search results for query [{}]".format(query))
 
 
 @app.route("/")

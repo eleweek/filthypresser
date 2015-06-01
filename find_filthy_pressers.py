@@ -2,7 +2,7 @@ import logging
 import argparse
 import time
 import praw
-from app import Submission, db
+from app import Submission, Comment, db
 from datetime import datetime
 
 
@@ -14,6 +14,7 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
     cts2 = largest_timestamp
     cts1 = largest_timestamp - ts_interval
     current_ts_interval = ts_interval
+    processed_submissions = 0
     while True:
         try:
             search_results = list(r.search('timestamp:{}..{}'.format(cts1, cts2), subreddit='thebutton', syntax='cloudsearch'))
@@ -31,30 +32,38 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
         for s in search_results:
             # FIXME check url length etc
             try:
-                if Submission.query.filter_by(submission_id=s.id).first() is not None:
-                    continue
-                dbs = Submission(submission_id=s.id,
-                                 score=s.score,
-                                 permalink=s.permalink,
-                                 created_utc=datetime.utcfromtimestamp(s.created_utc),
-                                 url=s.url,
-                                 title=s.title,
-                                 author_flair_text=s.author_flair_text,
-                                 selftext=s.selftext)
+                dbs = db.session.merge(Submission(reddit_id=s.id,
+                                                  score=s.score,
+                                                  permalink=s.permalink,
+                                                  created_utc=datetime.utcfromtimestamp(s.created_utc),
+                                                  url=s.url,
+                                                  title=s.title,
+                                                  author_username=s.author.name,
+                                                  author_flair_text=s.author_flair_text,
+                                                  selftext=s.selftext))
 
                 db.session.add(dbs)
+                processed_submissions += 1
+                # submission.replace_more_comments(limit=None)
+                for c in filter(lambda c: type(c) == praw.objects.Comment, praw.helpers.flatten_tree(s.comments)):
+                    dbc = db.session.merge(Comment(reddit_id=c.id,
+                                                   score=c.score,
+                                                   permalink=c.permalink,
+                                                   created_utc=datetime.utcfromtimestamp(c.created_utc),
+                                                   author_username=c.author.name,
+                                                   author_flair_text=c.author_flair_text,
+                                                   body=c.body,
+                                                   parent_reddit_id=c.parent_id))
+                    db.session.add(dbc)
             except Exception as e:
                 logging.exception(e)
                 db.session.rollback()
 
-            # submission.replace_more_comments(limit=None)
-            # for c in submission.comments:
-            # TODO: use regex here
-            #    if 'filthy presser' in c.body or "Filthy presser" in c.body:
-            #        print c.id, (c.permalink if 'permalink' in dir(c) else None), c.body, c.author_flair_text
-
         cts2 = cts1
         cts1 = cts2 - current_ts_interval
+
+        # FIXME, probably use logging
+        print "             PROCESSED_SUBMISSIONS", datetime.now(), processed_submissions
         try:
             db.session.commit()
         except Exception as e:

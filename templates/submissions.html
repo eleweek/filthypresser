@@ -10,6 +10,7 @@
     </p>
     <h2> {{heading}}</h2>
     <h3> Submissions in the db: {{submissions_count}} </h3>
+    <h3> Comments in the db: {{comments_count}} </h3>
 
     {{ macros.render_pagination(submissions) }}
     {% for s in submissions.items %}
