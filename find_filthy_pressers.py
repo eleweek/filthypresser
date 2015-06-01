@@ -55,6 +55,7 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
                                                    body=c.body,
                                                    parent_reddit_id=c.parent_id))
                     db.session.add(dbc)
+                    dbc.submission = dbs
             except Exception as e:
                 logging.exception(e)
                 db.session.rollback()

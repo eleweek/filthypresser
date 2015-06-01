@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, url_for, redirect, g
 from flask_bootstrap import Bootstrap
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, and_
+from sqlalchemy.orm import backref
 from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from wtforms import StringField, SubmitField
@@ -58,6 +59,7 @@ class Submission(Thing):
     url = db.Column(db.String(1024))
     title = db.Column(db.String(1024))
     selftext = db.Column(db.Text())
+    comments = db.relationship('Comment', backref=backref('submission', remote_side=[Thing.reddit_id]), lazy='dynamic')
 
     __mapper_args__ = {
         'polymorphic_identity': 'submission'
@@ -71,6 +73,8 @@ class Comment(Thing):
     __mapper_args__ = {
         'polymorphic_identity': 'comment'
     }
+
+    submission_reddit_id = db.Column(db.String(32), db.ForeignKey('thing.reddit_id'))
 
 
 class SearchForm(Form):
