@@ -38,8 +38,8 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
                                                   created_utc=datetime.utcfromtimestamp(s.created_utc),
                                                   url=s.url,
                                                   title=s.title,
-                                                  author_username=s.author.name,
-                                                  author_flair_text=s.author_flair_text,
+                                                  author_username=s.author.name if s.author else None,
+                                                  author_flair_text=s.author_flair_text if s.author else None,
                                                   selftext=s.selftext))
 
                 db.session.add(dbs)
@@ -50,8 +50,8 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
                                                    score=c.score,
                                                    permalink=c.permalink,
                                                    created_utc=datetime.utcfromtimestamp(c.created_utc),
-                                                   author_username=c.author.name,
-                                                   author_flair_text=c.author_flair_text,
+                                                   author_username=c.author.name if c.author else None,
+                                                   author_flair_text=c.author_flair_text if c.author else None,
                                                    body=c.body,
                                                    parent_reddit_id=c.parent_id))
                     db.session.add(dbc)
