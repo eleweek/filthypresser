@@ -40,6 +40,15 @@ def url_for_other_page(page):
 app.jinja_env.globals['url_for_other_page'] = url_for_other_page
 
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(1024))
+    flair_text = db.Column(db.String(1024))
+
+    submissions = db.relationship('Submission', backref='user', lazy='dynamic')
+    comments = db.relationship('Comment', backref='user', lazy='dynamic')
+
+
 class Thing(db.Model):
     type = db.Column(db.String(50))
     reddit_id = db.Column(db.String(32), unique=True, primary_key=True)
@@ -48,6 +57,7 @@ class Thing(db.Model):
     author_username = db.Column(db.String(1024))
     author_flair_text = db.Column(db.String(1024))
     created_utc = db.Column(db.DateTime())
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
 
     __mapper_args__ = {
         'polymorphic_on': type,
