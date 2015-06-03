@@ -2,12 +2,12 @@ import logging
 import argparse
 import time
 import praw
-from app import Submission, Comment, db
+from app import Submission, Comment, User, db, get_or_create
 from datetime import datetime
 
 
 # Downloads all the self posts from given subreddit
-def find_filthy_pressers(ts_interval, largest_timestamp):
+def download_thebutton(ts_interval, largest_timestamp):
     r = praw.Reddit(user_agent='filthypresser project 0.1 by /u/godlikesme')
     if largest_timestamp is None:
         largest_timestamp = int(time.time()) + 12*3600
@@ -42,7 +42,10 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
                                                   author_flair_text=s.author_flair_text if s.author else None,
                                                   selftext=s.selftext))
 
-                db.session.add(dbs)
+                user = get_or_create(User, username=s.author.name)
+                if s.author:
+                    dbs.user = user
+                    db.session.add(dbs)
                 processed_submissions += 1
                 # submission.replace_more_comments(limit=None)
                 for c in filter(lambda c: type(c) == praw.objects.Comment, praw.helpers.flatten_tree(s.comments)):
@@ -56,6 +59,9 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
                                                    parent_reddit_id=c.parent_id))
                     db.session.add(dbc)
                     dbc.submission = dbs
+                    if c.author:
+                        user = get_or_create(User, username=c.author.name)
+                        dbc.user = user
             except Exception as e:
                 logging.exception(e)
                 db.session.rollback()
@@ -82,12 +88,12 @@ def find_filthy_pressers(ts_interval, largest_timestamp):
 def main():
     logging.getLogger().setLevel(logging.DEBUG)
 
-    parser = argparse.ArgumentParser(description='filthy presser app/bot')
+    parser = argparse.ArgumentParser(description='filthy presser downloader')
     parser.add_argument("--timestamp_interval", dest="timestamp_interval", type=int, required=True)
     parser.add_argument("--largest_timestamp", dest="largest_timestamp", type=int, required=False, default=None)
     args = parser.parse_args()
 
-    find_filthy_pressers(args.timestamp_interval, args.largest_timestamp)
+    download_thebutton(args.timestamp_interval, args.largest_timestamp)
 
 if __name__ == "__main__":
     main()
