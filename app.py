@@ -173,7 +173,7 @@ def search_results(query, page):
 
 @app.route("/")
 def index():
-    return redirect(url_for("filthy_pressers"))
+    return render_template("index.html")
 
 if __name__ == "__main__":
     manager.run()
