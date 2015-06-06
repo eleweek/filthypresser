@@ -7,13 +7,27 @@ from flask.ext.script import Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from wtforms import StringField, SubmitField
 from flask_wtf import Form
-import os
+import re
+from sqlalchemy.event import listens_for
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
-app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///archive.db"
+app.config['SECRET_KEY'] = "devkey"
 Bootstrap(app)
 db = SQLAlchemy(app)
+
+
+def sqlite_regexp(expr, item):
+    if item is None:
+        return False
+    reg = re.compile(expr, re.I)
+    return reg.search(item) is not None
+
+
+@listens_for(db.engine, "begin")
+def do_begin(conn):
+    conn.connection.create_function('regexp', 2, sqlite_regexp)
+
 migrate = Migrate(app, db)
 
 manager = Manager(app)
@@ -111,8 +125,8 @@ def filthy_pressers(page):
     submissions = Submission.query.filter(and_(Submission.author_flair_text != 'non presser',
                                                Submission.author_flair_text != "can't press",
                                                Submission.author_flair_text != None))\
-                                  .filter(or_(Submission.selftext.op("~")(regex),
-                                              Submission.title.op("~")(regex)))\
+                                  .filter(or_(Submission.selftext.op("regexp")(regex),
+                                              Submission.title.op("regexp")(regex)))\
                                   .order_by(Submission.reddit_id.asc())\
                                   .paginate(page=page, per_page=20)  # NOQA
 
@@ -144,7 +158,7 @@ def search():
 @app.route('/search_results/<query>/<int:page>')
 @app.route('/search_results/<query>', defaults={"page": 1})
 def search_results(query, page):
-    submissions = Submission.query.filter(Submission.selftext.op("~")(query)).order_by(Submission.reddit_id.asc()).paginate(per_page=20, page=page)
+    submissions = Submission.query.filter(Submission.selftext.op("regexp")(query)).order_by(Submission.reddit_id.asc()).paginate(per_page=20, page=page)
 
     return render_template("submissions.html",
                            submissions_count=Submission.query.count(),
