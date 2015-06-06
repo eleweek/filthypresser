@@ -9,9 +9,14 @@ from wtforms import StringField, SubmitField
 from flask_wtf import Form
 import re
 from sqlalchemy.event import listens_for
+import gzip
+
+with gzip.open('archive.sqlite3.gz', 'rb') as archive_compressed:
+    with open('archive.sqlite3', 'wb') as archive_uncompressed:
+        archive_uncompressed.write(archive_compressed.read())
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///archive.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///archive.sqlite3"
 app.config['SECRET_KEY'] = "devkey"
 Bootstrap(app)
 db = SQLAlchemy(app)
